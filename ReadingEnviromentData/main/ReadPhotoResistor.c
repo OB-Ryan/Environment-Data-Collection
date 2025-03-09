@@ -29,9 +29,11 @@ void endless_read() {
     printf("Starting Data Read:\n");
 
     TickType_t delay = TICK_DELAY;
-    while (1) {
+    int i = 0;
+    while (i < 25) {
         // Continuously read data - wait 25 ticks between each read
         printf("Reading: %d\n", read_analog());
-        vTaskDelay(delay);  
+        vTaskDelay(delay);
+        i++; 
     }
 }
