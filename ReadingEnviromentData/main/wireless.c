@@ -3,9 +3,10 @@
 
 #include "wireless.h"
 
-bool EXPECTED_DISCONNECT = false;
+static int curr_reconnect_num = 0;
 
-static void Wifi_Event_Handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
+static void Wifi_IP_Event_Handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
+    // Wifi Event
     if (event_base == WIFI_EVENT) {
         switch (event_id) {
             case WIFI_EVENT_STA_START:
@@ -16,11 +17,12 @@ static void Wifi_Event_Handler(void* arg, esp_event_base_t event_base, int32_t e
                 break;
             case WIFI_EVENT_STA_DISCONNECTED:
                 // TODO: if this event is set by esp_wifi_disconnect() -> Do not call connect
-                if (!EXPECTED_DISCONNECT) {
+                if (curr_reconnect_num < MAX_RECONNECT_ATTEMPS) {
                     esp_wifi_connect();
-                    EXPECTED_DISCONNECT = false;
+                    curr_reconnect_num++;
+                } else {
+                    xEventGroupSetBits(wifi_event_group, WIFI_FAIL_BIT);
                 }
-                printf("Disconnect expected... Handling nothing...\n");
                 break;
             case WIFI_EVENT_STA_STOP:
                 break;
@@ -28,47 +30,57 @@ static void Wifi_Event_Handler(void* arg, esp_event_base_t event_base, int32_t e
                 break;
         }
     }
+
+    // IP Event
+    if (event_base == IP_EVENT) {
+        switch (event_id) {
+            case IP_EVENT_STA_GOT_IP:
+                ip_event_got_ip_t* event = (ip_event_got_ip_t*)event_data;
+                // TODO: Add to log
+                curr_reconnect_num = 0;
+                xEventGroupSetBits(wifi_event_group, WIFI_CONNECTED_BIT);
+            default:
+                break;
+        }
+    }
 }
 
-bool LwIP_WiFi_Init() {
-    // Initialize the flash
-    esp_err_t ret = nvs_flash_init();
-    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-        ESP_ERROR_CHECK(nvs_flash_erase());
-        ret = nvs_flash_init();
-    }
-    ESP_ERROR_CHECK(ret);
+void LwIP_WiFi_Init() {
+    wifi_event_group = xEventGroupCreate();
 
-    if (esp_netif_init() != ESP_OK) {
-        return false;
-    }
-
-    if (esp_event_loop_create_default() != ESP_OK) {
-        return false;
-    }
+    ESP_ERROR_CHECK(esp_netif_init());
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
 
     esp_netif_t* netif = esp_netif_create_default_wifi_sta();
 
     wifi_init_config_t init = WIFI_INIT_CONFIG_DEFAULT();
-    if (esp_wifi_init(&init) != ESP_OK) {
-        return false;
-    }
+    ESP_ERROR_CHECK(esp_wifi_init(&init));
 
     // Hand WiFi events
-    esp_event_handler_instance_t any_id;
+    esp_event_handler_instance_t instance_any_id;
     ESP_ERROR_CHECK(
         esp_event_handler_instance_register(
-                WIFI_EVENT, 
-                ESP_EVENT_ANY_ID,
-                &Wifi_Event_Handler,
-                NULL,
-                &any_id
-            )
+            WIFI_EVENT, 
+            ESP_EVENT_ANY_ID,
+            &Wifi_IP_Event_Handler,
+            NULL,
+            &instance_any_id
+        )
     );
-    return true;
-}
 
-bool WiFi_Config() {
+    // Handle IP events
+    esp_event_handler_instance_t instance_got_ip;
+    ESP_ERROR_CHECK(
+        esp_event_handler_instance_register(
+            IP_EVENT,
+            IP_EVENT_STA_GOT_IP,
+            &Wifi_IP_Event_Handler,
+            NULL,
+            &instance_got_ip
+        )
+    );
+
+    // Configure connection
     wifi_config_t wifi_config = {
         .sta = {
             .ssid = SSID,
@@ -78,28 +90,34 @@ bool WiFi_Config() {
     };
 
     // Use Station Mode
-    if (esp_wifi_set_mode(WIFI_MODE_STA) != ESP_OK) {
-        return false;
-    }
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+    ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_config));
+    ESP_ERROR_CHECK(esp_wifi_start());
+    printf("init finished\n");
 
-    if (esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_config) != ESP_OK) {
-        return false;
-    }
+    // Wait until connection is established, or failed maximum number of allowed attempts
+    EventBits_t event_bits = xEventGroupWaitBits(wifi_event_group,
+        WIFI_CONNECTED_BIT | WIFI_FAIL_BIT,
+        pdFALSE,
+        pdFALSE,
+        portMAX_DELAY
+    );
 
-    return true;
+    // Check the status of our EventGroup
+    if (event_bits & WIFI_CONNECTED_BIT) {
+        printf("Connected to: %s\n", SSID);
+        // TODO: Add to log
+    } else if (event_bits & WIFI_FAIL_BIT) {
+        printf("Failed to connect to %s\n", SSID);
+        // TODO: Add to log
+    }
 }
 
-bool WiFi_Start() {
-    if (esp_wifi_start() != ESP_OK) {
-        return false;
-    }
-
-    return true;
+void WiFi_Start() {
+    ESP_ERROR_CHECK(esp_wifi_start());
 }
-
 
 void WiFi_Deinit() {
-    EXPECTED_DISCONNECT = true;
     esp_wifi_disconnect();
     esp_wifi_stop();
     esp_wifi_deinit();
