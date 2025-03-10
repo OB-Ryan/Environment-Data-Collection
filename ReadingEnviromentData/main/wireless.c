@@ -4,6 +4,7 @@
 #include "wireless.h"
 
 static int curr_reconnect_num = 0;
+EventGroupHandle_t wifi_event_group;
 
 static void Wifi_IP_Event_Handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
     // Wifi Event
