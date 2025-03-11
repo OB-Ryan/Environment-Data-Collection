@@ -13,39 +13,40 @@ static void mqtt_event_handler(void* args, esp_event_base_t event_base, int32_t 
 
     switch (event_id) {
         case MQTT_EVENT_CONNECTED:
-            ESP_LOGI(TAG, "Client has connected\n");
+            ESP_LOGI(TAG, "Client has connected");
             // QoS 0; Fire and Forget
             esp_mqtt_client_subscribe(client, TOPIC, 0);
-            ESP_LOGI(TAG, "Cient has subscribed to topic %s\n", TOPIC);
+            ESP_LOGI(TAG, "Cient has subscribed to topic %s", TOPIC);
+            xEventGroupSetBits(mqtt_event_group, MQTT_CONNECTED_BIT);
             break;
         case MQTT_EVENT_DISCONNECTED:
             if (curr_reconnect_num < MAX_RECONNECT_ATTEMPTS) {
-                ESP_LOGW(TAG, "MQTT disconnected. Attempting to reconnect\n");
+                ESP_LOGW(TAG, "MQTT disconnected. Attempting to reconnect");
                 esp_mqtt_client_subscribe(client, TOPIC, 0);
                 curr_reconnect_num++;
             } else {
                 xEventGroupSetBits(mqtt_event_group, MQTT_FAIL_BIT);
-                ESP_LOGE(TAG, "MQTT connection failed.\n");
+                ESP_LOGE(TAG, "MQTT connection failed.");
             }
             break;
         case MQTT_EVENT_SUBSCRIBED:
-            ESP_LOGI(TAG, "Client has subscribed to a topic\n");
-            publish_message_mqtt();
+            ESP_LOGI(TAG, "Client has subscribed to a topic");
+            publish_message_mqtt("ESP32 Connected and Subscribed!");
             break;
         case MQTT_EVENT_UNSUBSCRIBED:
-            ESP_LOGI(TAG, "Client has unsubscribed from a topic\n");
+            ESP_LOGI(TAG, "Client has unsubscribed from a topic");
             break;
         case MQTT_EVENT_PUBLISHED:
-            ESP_LOGI(TAG, "Client published a message.\n");
+            ESP_LOGI(TAG, "Client published a message.");
             break;
         case MQTT_EVENT_ERROR:
-            ESP_LOGE(TAG, "MQTT EVENT ERROR!\n");
+            ESP_LOGE(TAG, "MQTT EVENT ERROR!");
             break;
         case MQTT_EVENT_DATA:
-            ESP_LOGI(TAG, "Received event data\n");
+            ESP_LOGI(TAG, "Received event data");
             break;
         default:
-            ESP_LOGW(TAG, "MQTT Event %ld left undandled...!\n", event_id);
+            ESP_LOGW(TAG, "MQTT Event %ld left undandled...!", event_id);
             break;
     }
 }
@@ -53,6 +54,7 @@ static void mqtt_event_handler(void* args, esp_event_base_t event_base, int32_t 
 void init_mqtt () {
     mqtt_event_group = xEventGroupCreate();
 
+    // Only need to configure the Broker URI
     const esp_mqtt_client_config_t mqtt_cfg = {
         .broker.address.uri = BROKER_URI
     };
@@ -78,28 +80,30 @@ void init_mqtt () {
 
     // Check the status of our EventGroup
     if (event_bits & MQTT_CONNECTED_BIT) {
-        ESP_LOGI(TAG, "Connected to %s\n", BROKER_ADR);
+        ESP_LOGI(TAG, "Connected to %s", BROKER_ADR);
     } else if (event_bits & MQTT_FAIL_BIT) {
-        ESP_LOGI(TAG, "Failed to connect to %s\n", BROKER_ADR);
+        ESP_LOGI(TAG, "Failed to connect to %s", BROKER_ADR);
     } else {
         ESP_LOGE(TAG, "Error with event!");
     }
 }
 
-void publish_message_mqtt() {
-    /*
-    *   PUBLISH TEST:
-    *       - Test string
-    *       - QoS 0, Fire and Forget
-    *       - len: 0 (is calcuated from data string)
-    *       - retain 1: Broker retains
-    */
+/*
+*   PUBLISH:
+*       - Client: ESP32 client
+*       - Topic: TOPIC macro: EnviromentData
+*       - Publish Payload String: message_string
+*       - QoS: 0 - Fire and Forget
+*       - len: 0 - is calcuated from data payload string
+*       - retain: 0 - Broker does not need to retain
+*/
+void publish_message_mqtt(char* message_string) {
     esp_mqtt_client_publish(
         client,
         TOPIC,
-        "Hello, message string!\n",
+        message_string,
         0,
         0,
-        1
+        0
     );
 }
