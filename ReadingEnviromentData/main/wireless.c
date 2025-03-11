@@ -15,22 +15,23 @@ static void Wifi_IP_Event_Handler(void* arg, esp_event_base_t event_base, int32_
                 esp_wifi_connect();
                 break;
             case WIFI_EVENT_STA_CONNECTED:
-                ESP_LOGI(TAG, "WiFi connected\n");
+                ESP_LOGI(TAG, "WiFi connected");
                 break;
             case WIFI_EVENT_STA_DISCONNECTED:
                 if (curr_reconnect_num < MAX_RECONNECT_ATTEMPS) {
-                    ESP_LOGW(TAG, "WiFi disconnected. Attempting to reconnect\n");
+                    ESP_LOGW(TAG, "WiFi disconnected. Attempting to reconnect");
                     esp_wifi_connect();
                     curr_reconnect_num++;
                 } else {
                     xEventGroupSetBits(wifi_event_group, WIFI_FAIL_BIT);
-                    ESP_LOGE(TAG, "Connection failed.\n");
+                    ESP_LOGE(TAG, "Connection failed.");
                 }
                 break;
             case WIFI_EVENT_STA_STOP:
                 ESP_LOGI(TAG, "WiFi stopped");
                 break;
             default:
+                ESP_LOGW(TAG, "Unhandled event. ID: %ld", event_id);
                 break;
         }
     }
@@ -44,6 +45,7 @@ static void Wifi_IP_Event_Handler(void* arg, esp_event_base_t event_base, int32_
                 curr_reconnect_num = 0;
                 xEventGroupSetBits(wifi_event_group, WIFI_CONNECTED_BIT);
             default:
+                ESP_LOGW(TAG, "Unhandled event. ID: %ld", event_id);
                 break;
         }
     }
@@ -97,7 +99,7 @@ void LwIP_WiFi_Init() {
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_config));
     ESP_ERROR_CHECK(esp_wifi_start());
-    ESP_LOGI(TAG, "Initialization of wireless finished\n");
+    ESP_LOGI(TAG, "Initialization of wireless finished");
 
     // Wait until connection is established, or failed maximum number of allowed attempts
     EventBits_t event_bits = xEventGroupWaitBits(wifi_event_group,
@@ -109,9 +111,9 @@ void LwIP_WiFi_Init() {
 
     // Check the status of our EventGroup
     if (event_bits & WIFI_CONNECTED_BIT) {
-        ESP_LOGI(TAG, "Connected to %s\n", SSID);
+        ESP_LOGI(TAG, "Connected to %s", SSID);
     } else if (event_bits & WIFI_FAIL_BIT) {
-        ESP_LOGI(TAG, "Failed to connect to %s\n", SSID);
+        ESP_LOGI(TAG, "Failed to connect to %s", SSID);
     } else {
         ESP_LOGE(TAG, "Error with event!");
     }
@@ -133,9 +135,9 @@ void print_connection_info() {
 
     // Access Point information
     if (esp_wifi_sta_get_ap_info(&ap_info) == ESP_OK) {
-        ESP_LOGI(TAG, "Connected to SSID: %s\n", ap_info.ssid);
+        ESP_LOGI(TAG, "Connected to SSID: %s", ap_info.ssid);
     } else {
-        ESP_LOGW(TAG, "Failed to get AP info\n");
+        ESP_LOGW(TAG, "Failed to get AP info");
     }
 
     // IP information
@@ -146,10 +148,10 @@ void print_connection_info() {
         esp_ip4addr_ntoa(&ip_info.ip, ip, 100);
         esp_ip4addr_ntoa(&ip_info.netmask, netmask, 100);
         esp_ip4addr_ntoa(&ip_info.gw, gateway, 100);
-        ESP_LOGI(TAG, "IP Address: %s\n", ip);
-        ESP_LOGI(TAG, "Subnet Mask: %s\n", netmask);
-        ESP_LOGI(TAG, "Gateway: %s\n", gateway);
+        ESP_LOGI(TAG, "IP Address: %s", ip);
+        ESP_LOGI(TAG, "Subnet Mask: %s", netmask);
+        ESP_LOGI(TAG, "Gateway: %s", gateway);
     } else {
-        ESP_LOGW(TAG, "Failed to get IP information\n");
+        ESP_LOGW(TAG, "Failed to get IP information");
     }
 }

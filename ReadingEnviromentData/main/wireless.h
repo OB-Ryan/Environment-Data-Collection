@@ -1,7 +1,6 @@
 // Ryan Root
 // Establish and handle a wireless connection
 
-
 #include <stdio.h>
 #include "esp_mac.h"
 #include "esp_event.h"
