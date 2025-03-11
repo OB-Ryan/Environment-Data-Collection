@@ -15,18 +15,18 @@ void config_adc () {
 }
 
 int read_analog () {
-    return adc1_get_raw(CHANNEL);
+    int analog_read = adc1_get_raw(CHANNEL);
+    ESP_LOGI(TAG, "%d", analog_read);
+    return analog_read;
 }
 
 void endless_read() {
-    config_adc();
-    ESP_LOGI(TAG, "Starting Data Read:\n");
+    ESP_LOGI(TAG, "Starting Endless PhotoResistor Read:");
 
     TickType_t delay = TICK_DELAY;
     int i = 0;
     while (i < 25) {
         // Continuously read data - wait 25 ticks between each read
-        printf("Reading: %d\n", read_analog());
         vTaskDelay(delay);
         i++; 
     }
