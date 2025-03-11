@@ -4,7 +4,7 @@
 
 #include "ReadPhotoResistor.h"
 
-const char* TAG = "PHOTO_RESISTOR";
+static const char* TAG = "PHOTO_RESISTOR";
 
 void config_adc () {
     // Set the bit capture width
