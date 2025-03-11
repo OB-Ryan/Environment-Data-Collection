@@ -25,10 +25,13 @@ void app_main(void) {
     vTaskDelay(pdMS_TO_TICKS(5000));
     print_connection_info();
 
+    // Initialize our MQTT
+    init_mqtt();
+
+    // Delay 5 seconds
+    vTaskDelay(pdMS_TO_TICKS(5000));
+
     // Read analog data 25 times
     config_adc();
     endless_read();
-
-    // Stop and flush our connection
-    WiFi_Deinit();
 }
