@@ -5,7 +5,7 @@
 
 static int curr_reconnect_num = 0;
 EventGroupHandle_t wifi_event_group;
-const char* TAG = "WIRELESS";
+static const char* TAG = "WIRELESS";
 
 static void Wifi_IP_Event_Handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
     // Wifi Event
@@ -60,7 +60,7 @@ void LwIP_WiFi_Init() {
     wifi_init_config_t init = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&init));
 
-    // Hand WiFi events
+    // Handle WiFi events
     esp_event_handler_instance_t instance_any_id;
     ESP_ERROR_CHECK(
         esp_event_handler_instance_register(
@@ -109,7 +109,6 @@ void LwIP_WiFi_Init() {
 
     // Check the status of our EventGroup
     if (event_bits & WIFI_CONNECTED_BIT) {
-        printf("Connected to: %s\n", SSID);
         ESP_LOGI(TAG, "Connected to %s\n", SSID);
     } else if (event_bits & WIFI_FAIL_BIT) {
         ESP_LOGI(TAG, "Failed to connect to %s\n", SSID);
