@@ -27,7 +27,12 @@ void app_main(void) {
     LwIP_WiFi_Init();
 
     // Delay 5 seconds
-    vTaskDelay(pdMS_TO_TICKS(5000));
+    // Delay 5 seconds
+    printf("Connecting to WiFi\n");
+    for (int i = 1; i <= 5; i++) {
+        printf("%d...\n", i);
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
     print_connection_info();
 
     // Initialize our MQTT
@@ -35,13 +40,17 @@ void app_main(void) {
     init_mqtt();
 
     // Delay 5 seconds
-    vTaskDelay(pdMS_TO_TICKS(5000));
+    printf("Connecting to Broker\n");
+    for (int i = 1; i <= 5; i++) {
+        printf("%d...\n", i);
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
 
-    // Read analog data 25 times, publish each reading
+    // Read analog data froever, publish each reading
     ESP_LOGI(TAG, "Starting Analog Data Collection\n");
     config_adc();
     char analog_string_buf[20];
-    for (int i = 0; i < 25; i++) {
+    while (1) {
         int analog_read = read_analog();
         sprintf(analog_string_buf, "%d", analog_read);
         publish_message_mqtt(analog_string_buf);
