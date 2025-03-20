@@ -6,6 +6,7 @@
 static const char* TAG = "MQTT";
 static esp_mqtt_client_handle_t client;
 static int curr_reconnect_num = 0;
+static char topic_message[sizeof(TOPIC_MESSAGE_HEADER) + sizeof(TOPIC)];
 EventGroupHandle_t mqtt_event_group;
 
 static void mqtt_event_handler(void* args, esp_event_base_t event_base, int32_t event_id, void* event_data) {
@@ -31,7 +32,7 @@ static void mqtt_event_handler(void* args, esp_event_base_t event_base, int32_t 
             break;
         case MQTT_EVENT_SUBSCRIBED:
             ESP_LOGI(TAG, "Client has subscribed to a topic");
-            publish_message_mqtt("ESP32 Connected and Subscribed!");
+            publish_message_mqtt(topic_message);
             break;
         case MQTT_EVENT_UNSUBSCRIBED:
             ESP_LOGI(TAG, "Client has unsubscribed from a topic");
@@ -53,6 +54,9 @@ static void mqtt_event_handler(void* args, esp_event_base_t event_base, int32_t 
 
 void init_mqtt () {
     mqtt_event_group = xEventGroupCreate();
+
+    // Create the topic message
+    snprintf(topic_message, sizeof(topic_message), "%s%s", TOPIC_MESSAGE_HEADER, TOPIC);
 
     // Only need to configure the Broker URI
     const esp_mqtt_client_config_t mqtt_cfg = {

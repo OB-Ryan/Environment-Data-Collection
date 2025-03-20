@@ -1,6 +1,7 @@
 // Ryan Root
 // MQTT Client Functions
 
+#include <stdio.h>
 #include "mqtt_client.h"
 #include "esp_log.h"
 #include "esp_event.h"
@@ -11,6 +12,7 @@
 #define BROKER_ADR              ""  // Broker Address
 #define BROKER_URI              ""  // Full Broker URI
 #define TOPIC                   "EnviromentData"
+#define TOPIC_MESSAGE_HEADER    "ESP32 Subscribed to Topic: "
 #define TCP_PORT                1883
 #define TLS_PORT                8883
 #define MQTT_CONNECTED_BIT      BIT0
